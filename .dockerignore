@@ -45,7 +45,8 @@ Thumbs.db
 # ── Docs ──────────────────────────────────────────────────────────────────────
 README.md
 docs/
-*.md
+# README is needed for Hugging Face Space metadata
+!README.md
 
 # ── Env files (never bake secrets into the image) ─────────────────────────────
 .env

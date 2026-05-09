@@ -1,15 +1,3 @@
-
----
-title: Car Recommender
-emoji: ⚡
-colorFrom: green
-colorTo: yellow
-sdk: docker
-pinned: false
-license: mit
----
-
-
 <<<<<<< HEAD
 # Automobile ML Recommender System
 
