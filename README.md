@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Automobile ML Recommender System
 
 Analyze and recommend vehicles using machine learning-powered content-based filtering to provide personalized car suggestions based on user preferences.
@@ -910,3 +911,16 @@ Contributions are welcome! Please follow these steps:
 
 **Last Updated**: May 2026  
 **Version**: 1.0.0
+=======
+---
+title: Car Recommender
+emoji: ⚡
+colorFrom: green
+colorTo: yellow
+sdk: docker
+pinned: false
+license: mit
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+>>>>>>> 712d3006a156f16b4e6e9b31a717439caafeaa7c
