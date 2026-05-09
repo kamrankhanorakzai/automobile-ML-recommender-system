@@ -1,4 +1,12 @@
-<<<<<<< HEAD
+---
+title: Automobile ML Recommender
+emoji: 🚗
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
 # Automobile ML Recommender System
 
 Analyze and recommend vehicles using machine learning-powered content-based filtering to provide personalized car suggestions based on user preferences.
@@ -81,7 +89,7 @@ automobile-ML-recommender-system/
 ├── reports/                      # Model performance reports and figures
 │   └── figures/
 │
-├── Dockerfile                    # Multi-stage production Docker image
+├── Dockerfile                    # Production Docker image for Hugging Face Spaces
 ├── docker-compose.yml            # Docker Compose configuration
 ├── .dockerignore                 # Files excluded from Docker build
 ├── requirements.txt              # Python package dependencies (pinned versions)
@@ -117,6 +125,7 @@ automobile-ML-recommender-system/
 - **Logging**: Detailed operation logging with timestamps
 
 ### Deployment
+- **Hugging Face Spaces Ready**: Docker Space with auto-deploy CI/CD
 - **Multi-Stage Docker Build**: Optimized image with compiler-free runtime (~500MB)
 - **Layer Caching**: Efficient builds with requirements.txt before code
 - **Non-Root User**: Security-hardened container execution
@@ -273,6 +282,33 @@ docker-compose logs -f car-recommender
 # Stop service
 docker-compose down
 ```
+
+---
+
+## Hugging Face Deployment
+
+This project is configured for deployment on [Hugging Face Spaces](https://huggingface.co/spaces) as a **Docker Space**.
+
+### One-Click Deploy
+
+1. Go to [huggingface.co/new-space](https://huggingface.co/new-space)
+2. Enter Space name: `car_recommender`
+3. Choose **Docker** as the Space SDK
+4. Link your GitHub repository or upload files manually
+5. The Space will auto-build using the provided `Dockerfile`
+6. Available at: `https://huggingface.co/spaces/<your-username>/car_recommender`
+
+### Automated Deploy (CI/CD)
+
+The `.github/workflows/deploy.yml` pipeline automatically deploys to HF Spaces on every push to `main`:
+
+1. **DVC Pipeline**: Reproduces data processing and generates ML artifacts
+2. **HF Push**: Syncs all files (including artifacts) to the Hugging Face Space git repo
+3. **Auto-Build**: Hugging Face detects the `Dockerfile` and builds the Space
+
+**Prerequisites:**
+- `HF_TOKEN` secret set in your GitHub repository (token needs write access to the Space)
+- HF Space must already exist under your Hugging Face account
 
 ---
 
@@ -570,7 +606,7 @@ The Dockerfile uses a two-stage build process:
 docker build -t car-recommender:latest .
 
 # Run container
-docker run -p 8000:8000 \
+docker run -p 7860:7860 \
   -v $(pwd)/data/processed:/app/data/processed:ro \
   -v $(pwd)/data/interim:/app/data/interim:ro \
   -e LOG_LEVEL=info \
@@ -598,7 +634,7 @@ docker-compose up -d --scale car-recommender=3
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_HOST` | 0.0.0.0 | Bind address |
-| `APP_PORT` | 8000 | API port |
+| `APP_PORT` | 7860 | API port (HF default) |
 | `APP_WORKERS` | 1 | Uvicorn worker processes |
 | `LOG_LEVEL` | info | Logging level (debug, info, warning, error) |
 
@@ -720,16 +756,16 @@ make test
 
 See [requirements.txt](requirements.txt) for pinned versions:
 
-- **fastapi** 0.104.1 - Web framework
-- **uvicorn** 0.24.0 - ASGI server
-- **scikit-learn** 1.3.2 - ML pipelines
-- **pandas** 2.1.3 - Data manipulation
-- **numpy** 1.26.2 - Numerical computing
-- **scipy** 1.11.4 - Sparse matrices
-- **rapidfuzz** 3.4.0 - Fuzzy matching
-- **joblib** 1.3.2 - Model serialization
-- **dask** 2023.12.0 - Large dataframe processing
-- **pyarrow** 13.0.0 - Parquet format
+- **fastapi** 0.136.1 - Web framework
+- **uvicorn** 0.46.0 - ASGI server
+- **scikit-learn** 1.8.0 - ML pipelines
+- **pandas** 3.0.2 - Data manipulation
+- **numpy** 2.4.4 - Numerical computing
+- **scipy** 1.17.1 - Sparse matrices
+- **rapidfuzz** 3.14.5 - Fuzzy matching
+- **joblib** 1.5.3 - Model serialization
+- **dask** 2025.3.0 - Large dataframe processing
+- **pyarrow** 24.0.0 - Parquet format
 
 ---
 
@@ -777,83 +813,6 @@ Logs include:
 - **No credentials in image**: Environment variables or .env files only
 - **Input validation**: Pydantic models validate all parameters
 - **Error messages**: No sensitive data leakage in responses
-
----
-
-## 🚢 Production Deployment
-
-### Recommended Setup
-
-```
-                    ┌─────────────┐
-                    │ Load Balancer
-                    │ (nginx/HAProxy)
-                    └────────┬────┘
-                             │
-            ┌────────────────┼────────────────┐
-            │                │                │
-        ┌───▼──┐         ┌───▼──┐         ┌──▼───┐
-        │  Pod │         │  Pod │         │ Pod  │
-        │ :8000│         │ :8000│         │:8000 │
-        └──────┘         └──────┘         └──────┘
-            │                │                │
-            └────────────────┼────────────────┘
-                             │
-                    ┌────────▼────────┐
-                    │ Shared NFS/EBS  │
-                    │ /data/processed │
-                    │ /data/interim   │
-                    └─────────────────┘
-```
-
-### Kubernetes Example
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: car-recommender
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: car-recommender
-  template:
-    metadata:
-      labels:
-        app: car-recommender
-    spec:
-      containers:
-      - name: api
-        image: car-recommender:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: APP_WORKERS
-          value: "1"
-        - name: LOG_LEVEL
-          value: "info"
-        volumeMounts:
-        - name: data
-          mountPath: /app/data
-          readOnly: true
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 60
-          periodSeconds: 30
-        resources:
-          requests:
-            memory: "256Mi"
-          limits:
-            memory: "512Mi"
-      volumes:
-      - name: data
-        nfs:
-          server: nfs-server.example.com
-          path: /exports/car-recommender
-```
 
 ---
 
@@ -911,4 +870,3 @@ Contributions are welcome! Please follow these steps:
 
 **Last Updated**: May 2026  
 **Version**: 1.0.0
-=======
