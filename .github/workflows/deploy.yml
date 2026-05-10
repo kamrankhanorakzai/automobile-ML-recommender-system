@@ -71,12 +71,15 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           git clone https://huggingface.co/spaces/kami2334/car_recommender hf_space
-          rsync -av --exclude='.git' ./ hf_space/
+          rsync -av --exclude='.git' --exclude='.gitignore' ./ hf_space/
 
           cd hf_space
           git config user.email "github-actions@github.com"
           git config user.name "github-actions"
 
+          # Force-add data artifacts that are gitignored by the main repo
+          # (HF Space needs the processed data for the Docker build)
+          git add -f data/processed/ data/interim/
           git add .
           git commit -m "Auto deploy from GitHub CI/CD" || echo "No changes"
           git push https://kami2334:$HF_TOKEN@huggingface.co/spaces/kami2334/car_recommender main
