@@ -27,11 +27,23 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
+      - name: Cache DVC cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/dvc
+          key: dvc-cache-${{ hashFiles('dvc.lock') }}
+          restore-keys: |
+            dvc-cache-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install dvc
+
+      - name: Pull DVC data from remote
+        run: |
+          dvc pull --run-cache || echo "No DVC remote configured, skipping pull"
 
       - name: Reproduce DVC pipeline
         run: |
@@ -44,6 +56,7 @@ jobs:
           path: |
             data/processed/
             data/interim/
+          compression-level: 0  # no compression — binary files are faster
 
   # ─────────────────────────────────────────────
   # STAGE 2: Hugging Face Deploy
@@ -63,6 +76,14 @@ jobs:
           name: dvc-artifacts
           path: ./data/
 
+      - name: Cache pip (HF deploy)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-hf-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            pip-hf-
+
       - name: Install HF CLI
         run: pip install huggingface_hub
 
@@ -70,7 +91,13 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git clone https://huggingface.co/spaces/kami2334/car_recommender hf_space
+          set -e
+          SPACE_URL="https://huggingface.co/spaces/kami2334/car_recommender"
+
+          echo "Cloning HF Space..."
+          git clone --depth 1 "$SPACE_URL" hf_space
+
+          echo "Syncing files..."
           rsync -av --exclude='.git' --exclude='.gitignore' ./ hf_space/
 
           cd hf_space
@@ -81,5 +108,12 @@ jobs:
           # (HF Space needs the processed data for the Docker build)
           git add -f data/processed/ data/interim/
           git add .
-          git commit -m "Auto deploy from GitHub CI/CD" || echo "No changes"
-          git push https://kami2334:$HF_TOKEN@huggingface.co/spaces/kami2334/car_recommender main
+
+          if git diff --cached --quiet; then
+            echo "No changes to deploy"
+          else
+            git commit -m "Auto deploy from GitHub CI/CD ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+            echo "Pushing to HF Space..."
+            git push https://kami2334:$HF_TOKEN@huggingface.co/spaces/kami2334/car_recommender main
+            echo "✅ Deployed successfully — HF Space is building..."
+          fi
