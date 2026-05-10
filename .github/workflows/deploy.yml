@@ -33,7 +33,7 @@ jobs:
           pip install -r requirements.txt
           pip install dvc
 
-      - name: Show DVC DAG
+      - name: Reproduce DVC pipeline
         run: |
           dvc repro
 
