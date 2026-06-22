@@ -28,6 +28,7 @@ Analyze and recommend vehicles using machine learning-powered content-based filt
 
 ## 📌 Overview
 
+
 This project presents an **end-to-end ML-powered recommendation system** for automobile discovery and personalization. It leverages real-world vehicle data to deliver accurate, content-based car recommendations using **cosine similarity on engineered feature vectors**.
 
 The solution integrates the complete machine learning lifecycle:
